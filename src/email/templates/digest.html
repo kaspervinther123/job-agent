@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Digest - {{ date }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-top: 0;
+            font-size: 24px;
+        }
+        h2 {
+            color: #1e40af;
+            font-size: 18px;
+            margin-top: 30px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .summary {
+            background-color: #eff6ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .summary p {
+            margin: 5px 0;
+        }
+        .job-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.2s;
+        }
+        .job-card:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .job-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0 0 5px 0;
+        }
+        .job-title a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .job-title a:hover {
+            text-decoration: underline;
+        }
+        .job-company {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .job-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 10px;
+        }
+        .score-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .score-high {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .score-medium {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .job-reasoning {
+            font-size: 14px;
+            color: #4b5563;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9fafb;
+            border-radius: 4px;
+        }
+        .highlights {
+            margin-top: 10px;
+        }
+        .highlight-tag {
+            display: inline-block;
+            background-color: #dbeafe;
+            color: #1e40af;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        .concern-tag {
+            display: inline-block;
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        .sector-header {
+            color: #6b7280;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #9ca3af;
+            text-align: center;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .cta-button:hover {
+            background-color: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Din daglige jobdigest</h1>
+
+        <div class="summary">
+            <p><strong>{{ total_jobs }}</strong> nye relevante stillinger fundet</p>
+            <p>Dato: {{ date }}</p>
+        </div>
+
+        {% for sector, jobs in jobs_by_sector.items() %}
+        <div class="sector-header">{{ sector | upper }}</div>
+
+        {% for job in jobs %}
+        <div class="job-card">
+            <h3 class="job-title">
+                <a href="{{ job.url }}" target="_blank">{{ job.title }}</a>
+            </h3>
+            <div class="job-company">{{ job.company }}</div>
+
+            <div class="job-meta">
+                <span>📍 {{ job.location }}</span>
+                {% if job.deadline %}
+                <span>⏰ Deadline: {{ job.deadline.strftime('%d. %b %Y') }}</span>
+                {% endif %}
+                <span class="score-badge {% if job.relevance_score >= 80 %}score-high{% else %}score-medium{% endif %}">
+                    Match: {{ job.relevance_score }}%
+                </span>
+            </div>
+
+            <div class="job-reasoning">
+                {{ job.relevance_reasoning }}
+            </div>
+
+            {% if job.highlights %}
+            <div class="highlights">
+                {% for highlight in job.highlights %}
+                <span class="highlight-tag">✓ {{ highlight }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if job.concerns %}
+            <div class="highlights">
+                {% for concern in job.concerns %}
+                <span class="concern-tag">⚠ {{ concern }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <a href="{{ job.url }}" class="cta-button" target="_blank">Se opslag →</a>
+        </div>
+        {% endfor %}
+
+        {% endfor %}
+
+        <div class="footer">
+            <p>Denne email blev automatisk genereret af din Job Agent.</p>
+            <p>Vil du justere dine præferencer? Svar på denne email med feedback.</p>
+        </div>
+    </div>
+</body>
+</html>

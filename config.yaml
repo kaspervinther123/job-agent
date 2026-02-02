@@ -1,0 +1,30 @@
+# Job Agent Configuration
+
+scrapers:
+  jobindex:
+    enabled: true
+    search_terms:
+      - konsulent
+      - analytiker
+      - fuldmægtig
+      - data analyst
+      - policy
+    location: Danmark
+
+  jobnet:
+    enabled: true
+    search_terms:
+      - konsulent
+      - analytiker
+      - fuldmægtig
+
+scoring:
+  min_relevance: 60
+  batch_size: 10
+
+email:
+  to_address: kaspervintherhansen@live.dk
+  from_address: "Job Agent <jobs@resend.dev>"
+
+database:
+  path: ./data/jobs.db
