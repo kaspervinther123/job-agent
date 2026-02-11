@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 from typing import Optional
 
-from ..models.job import Job, JobSource
+from ..models.job import Job
 from ..models.feedback import Feedback, FeedbackType
 
 
