@@ -43,33 +43,6 @@ class EmailSender:
             autoescape=True,
         )
 
-    def _group_jobs_by_sector(self, jobs: list[Job]) -> dict[str, list[Job]]:
-        """Group jobs by sector for display."""
-        sector_names = {
-            "konsulent": "Konsulent & Rådgivning",
-            "offentlig": "Offentlig Sektor",
-            "interesseorganisation": "Interesseorganisationer",
-            "velgoerende": "Velgørende Organisationer",
-            "virksomhed": "Private Virksomheder",
-            None: "Øvrige",
-        }
-
-        grouped: dict[str, list[Job]] = {}
-
-        for job in jobs:
-            sector_key = job.sector or None
-            sector_name = sector_names.get(sector_key, sector_key or "Øvrige")
-
-            if sector_name not in grouped:
-                grouped[sector_name] = []
-            grouped[sector_name].append(job)
-
-        # Sort jobs within each sector by relevance score
-        for sector in grouped:
-            grouped[sector].sort(key=lambda j: j.relevance_score or 0, reverse=True)
-
-        return grouped
-
     def render_digest(self, jobs: list[Job]) -> str:
         """Render the digest email HTML.
 
@@ -81,10 +54,11 @@ class EmailSender:
         """
         template = self.jinja_env.get_template("digest.html")
 
-        jobs_by_sector = self._group_jobs_by_sector(jobs)
+        # Sort jobs by relevance score (highest first)
+        sorted_jobs = sorted(jobs, key=lambda j: j.relevance_score or 0, reverse=True)
 
         return template.render(
-            jobs_by_sector=jobs_by_sector,
+            jobs=sorted_jobs,
             total_jobs=len(jobs),
             date=datetime.now().strftime("%d. %B %Y"),
         )

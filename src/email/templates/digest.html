@@ -25,13 +25,6 @@
             margin-top: 0;
             font-size: 24px;
         }
-        h2 {
-            color: #1e40af;
-            font-size: 18px;
-            margin-top: 30px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e5e7eb;
-        }
         .summary {
             background-color: #eff6ff;
             border-radius: 6px;
@@ -71,6 +64,7 @@
         }
         .job-meta {
             display: flex;
+            flex-wrap: wrap;
             gap: 15px;
             font-size: 13px;
             color: #6b7280;
@@ -90,6 +84,14 @@
         .score-medium {
             background-color: #fef3c7;
             color: #92400e;
+        }
+        .score-low {
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+        .keyword-match {
+            background-color: #dbeafe;
+            color: #1e40af;
         }
         .job-reasoning {
             font-size: 14px;
@@ -122,14 +124,6 @@
             margin-right: 5px;
             margin-bottom: 5px;
         }
-        .sector-header {
-            color: #6b7280;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 25px;
-            margin-bottom: 10px;
-        }
         .footer {
             margin-top: 30px;
             padding-top: 20px;
@@ -155,15 +149,12 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Din daglige jobdigest</h1>
+        <h1>🎯 Din ugentlige jobdigest</h1>
 
         <div class="summary">
-            <p><strong>{{ total_jobs }}</strong> nye relevante stillinger fundet</p>
+            <p><strong>{{ total_jobs }}</strong> relevante stillinger fundet denne uge</p>
             <p>Dato: {{ date }}</p>
         </div>
-
-        {% for sector, jobs in jobs_by_sector.items() %}
-        <div class="sector-header">{{ sector | upper }}</div>
 
         {% for job in jobs %}
         <div class="job-card">
@@ -175,16 +166,23 @@
             <div class="job-meta">
                 <span>📍 {{ job.location }}</span>
                 {% if job.deadline %}
-                <span>⏰ Deadline: {{ job.deadline.strftime('%d. %b %Y') }}</span>
+                <span>⏰ Deadline: {{ job.deadline }}</span>
                 {% endif %}
-                <span class="score-badge {% if job.relevance_score >= 80 %}score-high{% else %}score-medium{% endif %}">
-                    Match: {{ job.relevance_score }}%
-                </span>
+                <span>🔗 {{ job.source }}</span>
+                {% if job.relevance_score >= 80 %}
+                <span class="score-badge score-high">Match: {{ job.relevance_score }}%</span>
+                {% elif job.relevance_score >= 60 %}
+                <span class="score-badge score-medium">Match: {{ job.relevance_score }}%</span>
+                {% else %}
+                <span class="score-badge keyword-match">📌 Nøgleord-match</span>
+                {% endif %}
             </div>
 
+            {% if job.relevance_reasoning %}
             <div class="job-reasoning">
                 {{ job.relevance_reasoning }}
             </div>
+            {% endif %}
 
             {% if job.highlights %}
             <div class="highlights">
@@ -204,8 +202,6 @@
 
             <a href="{{ job.url }}" class="cta-button" target="_blank">Se opslag →</a>
         </div>
-        {% endfor %}
-
         {% endfor %}
 
         <div class="footer">
