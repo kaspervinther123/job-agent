@@ -21,7 +21,7 @@ class EmailSender:
         self,
         api_key: Optional[str] = None,
         from_address: str = "Job Agent <onboarding@resend.dev>",
-        to_address: str = "kaspervintherhansen@live.dk",
+        to_address: str = "kaspervinther123@gmail.com",
     ):
         """Initialize the email sender.
 
