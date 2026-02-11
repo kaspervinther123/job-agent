@@ -70,6 +70,14 @@ Target job titles (søgeord):
 - Cand.scient.pol / statskundskab stillinger
 - Samfundsvidenskabelig konsulent
 
+Preferred workplace types (score these higher):
+- Styrelse (agency)
+- Kommune (municipality)
+- Region
+- Interesseorganisation (interest organization)
+- Departement
+- Ministerium / Ministerie (ministry)
+
 Strong interest in:
 1. Konsulent/Analyst roles - Management consulting, public sector consulting
 2. Offentlig forvaltning - Ministry positions (fuldmægtig), municipal analyst roles
