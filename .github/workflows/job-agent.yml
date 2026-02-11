@@ -22,19 +22,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
       - name: Install dependencies
         run: |
-          uv sync
+          pip install -e .
 
       - name: Install Playwright browsers
         run: |
-          uv run playwright install chromium
-          uv run playwright install-deps chromium
+          playwright install chromium
+          playwright install-deps chromium
 
       - name: Download previous database
         uses: actions/download-artifact@v4
@@ -48,7 +43,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
-          uv run python -m src.main
+          python -m src.main
 
       - name: Upload job database
         uses: actions/upload-artifact@v4
