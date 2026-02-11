@@ -88,6 +88,12 @@ Employment type:
 - Fuldtid (full-time) only
 - Both permanent positions (fastansættelse) and temporary/substitute (vikariat)
 
+NOT relevant (score these very low, 0-20):
+- Praktikant / Trainee positions
+- Studiejob / Student positions
+- Junior konsulent / Junior consultant
+- Internships
+
 Key preferences:
 - Meaningful work that makes a difference in society
 - Combines technical/analytical skills with policy understanding
