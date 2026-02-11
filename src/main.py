@@ -106,7 +106,7 @@ async def analyze_jobs(db: Database) -> int:
     return len(results)
 
 
-def send_digest(db: Database, min_relevance: int = 60) -> bool:
+def send_digest(db: Database, min_relevance: int = 50) -> bool:
     """Send email digest of relevant jobs.
 
     Args:

@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from datetime import datetime
+from typing import Optional
 from urllib.parse import quote_plus
 
 from bs4 import BeautifulSoup
@@ -117,7 +118,7 @@ async def scrape_jobindex() -> list[Job]:
     return unique_jobs
 
 
-def parse_job_card(card) -> Job | None:
+def parse_job_card(card) -> Optional[Job]:
     """Parse a job card element into a Job object."""
     try:
         # Title - look for h4 > a or other title patterns
