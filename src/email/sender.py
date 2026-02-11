@@ -20,7 +20,7 @@ class EmailSender:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        from_address: str = "Job Agent <jobs@resend.dev>",
+        from_address: str = "Job Agent <onboarding@resend.dev>",
         to_address: str = "kaspervintherhansen@live.dk",
     ):
         """Initialize the email sender.
@@ -103,8 +103,10 @@ class EmailSender:
             return True
 
         if not self.api_key:
-            logger.error("No Resend API key configured")
+            logger.error("No Resend API key configured - RESEND_API_KEY env var is empty")
             return False
+
+        logger.info(f"Preparing to send email to {self.to_address} from {self.from_address}")
 
         try:
             html_content = self.render_digest(jobs)
