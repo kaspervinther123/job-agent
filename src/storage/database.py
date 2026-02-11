@@ -128,16 +128,47 @@ class Database:
             return [Job.from_db_row(dict(row)) for row in cursor.fetchall()]
 
     def get_jobs_for_email(self, min_relevance: int = 60) -> list[Job]:
-        """Get relevant jobs that haven't been emailed yet."""
+        """Get relevant jobs that haven't been emailed yet.
+
+        Includes jobs that either:
+        1. Have relevance_score >= min_relevance, OR
+        2. Contain key keywords (cand.scient.pol, statskundskab, ac-fuldmægtig, akademisk fuldmægtig)
+           in title or description, regardless of AI score
+        """
+        # Keywords that should always be included
+        must_include_keywords = [
+            "cand.scient.pol",
+            "statskundskab",
+            "ac-fuldmægtig",
+            "akademisk fuldmægtig",
+            "ac fuldmægtig",
+        ]
+
         with self._get_connection() as conn:
+            # Build keyword conditions for SQL
+            keyword_conditions = " OR ".join([
+                "(LOWER(title) LIKE ? OR LOWER(description) LIKE ?)"
+                for _ in must_include_keywords
+            ])
+
+            # Parameters: first min_relevance, then pairs of keyword patterns
+            params = [min_relevance]
+            for kw in must_include_keywords:
+                pattern = f"%{kw.lower()}%"
+                params.extend([pattern, pattern])
+
             cursor = conn.execute(
-                """
+                f"""
                 SELECT * FROM jobs
-                WHERE relevance_score >= ?
-                  AND emailed_at IS NULL
+                WHERE emailed_at IS NULL
+                  AND relevance_score IS NOT NULL
+                  AND (
+                      relevance_score >= ?
+                      OR ({keyword_conditions})
+                  )
                 ORDER BY relevance_score DESC, scraped_at DESC
                 """,
-                (min_relevance,),
+                params,
             )
             return [Job.from_db_row(dict(row)) for row in cursor.fetchall()]
 
