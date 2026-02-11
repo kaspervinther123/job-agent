@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -e .
+          pip install anthropic playwright beautifulsoup4 httpx pydantic pydantic-settings pyyaml python-dotenv jinja2 resend
 
       - name: Install Playwright browsers
         run: |
