@@ -5,11 +5,12 @@ import logging
 import sys
 from datetime import datetime
 
-from .scrapers import JobindexScraper, JobnetScraper, CompanyPageScraper
+from .scrapers.jobindex import scrape_jobindex
+from .scrapers.jobunivers import scrape_jobunivers
 from .agent import JobRelevanceAgent
 from .storage import Database
 from .email import EmailSender
-from .config import settings, get_default_company_pages
+from .config import settings
 from .utils import deduplicate_jobs
 
 # Configure logging
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 async def scrape_jobs(db: Database) -> int:
-    """Scrape jobs from all sources.
+    """Scrape jobs from Jobindex and JobUnivers.
 
     Args:
         db: Database instance
@@ -33,40 +34,24 @@ async def scrape_jobs(db: Database) -> int:
         Number of new jobs added
     """
     all_jobs = []
-    search_terms = ["konsulent", "analytiker", "fuldmægtig", "data", "policy"]
 
     # Scrape Jobindex
     logger.info("=== Scraping Jobindex ===")
     try:
-        async with JobindexScraper() as scraper:
-            async for job in scraper.scrape(search_terms, max_pages=2):
-                all_jobs.append(job)
-        logger.info(f"Found {len(all_jobs)} jobs from Jobindex")
+        jobindex_jobs = await scrape_jobindex()
+        all_jobs.extend(jobindex_jobs)
+        logger.info(f"Found {len(jobindex_jobs)} jobs from Jobindex")
     except Exception as e:
         logger.error(f"Jobindex scraping failed: {e}")
 
-    # Scrape Jobnet
-    jobnet_count = len(all_jobs)
-    logger.info("=== Scraping Jobnet ===")
+    # Scrape JobUnivers
+    logger.info("=== Scraping JobUnivers ===")
     try:
-        async with JobnetScraper() as scraper:
-            async for job in scraper.scrape(search_terms, max_pages=2):
-                all_jobs.append(job)
-        logger.info(f"Found {len(all_jobs) - jobnet_count} jobs from Jobnet")
+        jobunivers_jobs = await scrape_jobunivers()
+        all_jobs.extend(jobunivers_jobs)
+        logger.info(f"Found {len(jobunivers_jobs)} jobs from JobUnivers")
     except Exception as e:
-        logger.error(f"Jobnet scraping failed: {e}")
-
-    # Scrape company career pages
-    company_count = len(all_jobs)
-    logger.info("=== Scraping Company Career Pages ===")
-    try:
-        company_sources = get_default_company_pages()
-        async with CompanyPageScraper() as scraper:
-            async for job in scraper.scrape(company_sources=company_sources):
-                all_jobs.append(job)
-        logger.info(f"Found {len(all_jobs) - company_count} jobs from company pages")
-    except Exception as e:
-        logger.error(f"Company page scraping failed: {e}")
+        logger.error(f"JobUnivers scraping failed: {e}")
 
     # Deduplicate
     unique_jobs = deduplicate_jobs(all_jobs)

@@ -1,8 +1,6 @@
-"""Job scrapers for various Danish job sources."""
+"""Job scrapers for Danish job sources."""
 
-from .base import BaseScraper
-from .jobindex import JobindexScraper
-from .jobnet import JobnetScraper
-from .company_pages import CompanyPageScraper
+from .jobindex import scrape_jobindex
+from .jobunivers import scrape_jobunivers
 
-__all__ = ["BaseScraper", "JobindexScraper", "JobnetScraper", "CompanyPageScraper"]
+__all__ = ["scrape_jobindex", "scrape_jobunivers"]

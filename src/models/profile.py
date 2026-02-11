@@ -63,18 +63,29 @@ Domain Knowledge:
 """
 
     target_roles: str = """
+Target job titles (søgeord):
+- AC fuldmægtig / Akademisk fuldmægtig
+- Analysekonsulent
+- Konsulent / Management konsulent
+- Cand.scient.pol / statskundskab stillinger
+- Samfundsvidenskabelig konsulent
+
 Strong interest in:
 1. Konsulent/Analyst roles - Management consulting, public sector consulting
 2. Offentlig forvaltning - Ministry positions (fuldmægtig), municipal analyst roles
 3. Data/AI roles - AI systemejer, data-driven policy, digitalization
 4. Generalist positions in central administration
 
+Employment type:
+- Fuldtid (full-time) only
+- Both permanent positions (fastansættelse) and temporary/substitute (vikariat)
+
 Key preferences:
 - Meaningful work that makes a difference in society
 - Combines technical/analytical skills with policy understanding
 - Stakeholder interaction and seeing projects through to implementation
 - Interest in digitalization, AI, and green transition
-- Location: Aarhus preferred, Copenhagen acceptable, remote-friendly roles
+- Location: Hovedstaden (Copenhagen), Aarhus, or Odense
 """
 
     languages: str = "Danish (native), English (fluent), German (conversational)"

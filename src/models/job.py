@@ -1,22 +1,10 @@
 """Job data model."""
 
 from datetime import datetime
-from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 import hashlib
-
-
-class JobSource(str, Enum):
-    """Source of the job listing."""
-
-    JOBINDEX = "jobindex"
-    JOBNET = "jobnet"
-    COMPANY_PAGE = "company_page"
-    ADZUNA = "adzuna"
-    REMOTEOK = "remoteok"
-    ARBEITNOW = "arbeitnow"
 
 
 class Job(BaseModel):
@@ -27,10 +15,10 @@ class Job(BaseModel):
     location: str
     description: str
     url: str
-    source: JobSource
-    sector: Optional[str] = None  # konsulent, offentlig, interesseorganisation, etc.
+    source: str  # jobindex, jobunivers, etc.
+    sector: Optional[str] = None
     posted_date: Optional[datetime] = None
-    deadline: Optional[datetime] = None
+    deadline: Optional[str] = None  # Keep as string since formats vary
     salary: Optional[str] = None
 
     # Populated after Claude analysis
@@ -41,13 +29,14 @@ class Job(BaseModel):
 
     # Metadata
     scraped_at: datetime = Field(default_factory=datetime.utcnow)
-    raw_html: Optional[str] = None  # For debugging
+    raw_html: Optional[str] = None
 
     @computed_field
     @property
     def job_hash(self) -> str:
-        """Unique hash for deduplication based on title + company + location."""
-        normalized = f"{self.title.lower().strip()}|{self.company.lower().strip()}|{self.location.lower().strip()}"
+        """Unique hash for deduplication based on title + company + URL."""
+        # Use URL for better deduplication
+        normalized = f"{self.title.lower().strip()}|{self.company.lower().strip()}|{self.url.lower().strip()}"
         return hashlib.sha256(normalized.encode()).hexdigest()[:16]
 
     @computed_field
@@ -65,10 +54,10 @@ class Job(BaseModel):
             "location": self.location,
             "description": self.description,
             "url": self.url,
-            "source": self.source.value,
+            "source": self.source,
             "sector": self.sector,
             "posted_date": self.posted_date.isoformat() if self.posted_date else None,
-            "deadline": self.deadline.isoformat() if self.deadline else None,
+            "deadline": self.deadline,
             "salary": self.salary,
             "relevance_score": self.relevance_score,
             "relevance_reasoning": self.relevance_reasoning,
@@ -86,10 +75,10 @@ class Job(BaseModel):
             location=row["location"],
             description=row["description"],
             url=row["url"],
-            source=JobSource(row["source"]),
+            source=row["source"],
             sector=row.get("sector"),
             posted_date=datetime.fromisoformat(row["posted_date"]) if row.get("posted_date") else None,
-            deadline=datetime.fromisoformat(row["deadline"]) if row.get("deadline") else None,
+            deadline=row.get("deadline"),
             salary=row.get("salary"),
             relevance_score=row.get("relevance_score"),
             relevance_reasoning=row.get("relevance_reasoning"),
