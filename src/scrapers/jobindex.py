@@ -19,14 +19,15 @@ SEARCH_KEYWORDS = [
     "ac fuldmægtig",
     "akademisk fuldmægtig",
     "analysekonsulent",
-    "konsulent",
     "samfundsvidenskabelig",
-    "management konsulent",
 ]
 
 # Location IDs for Jobindex
 # Hovedstaden = 1, Midtjylland (Aarhus) = 3, Syddanmark (Odense) = 4
 LOCATION_IDS = ["1", "3", "4"]
+
+# Maximum pages to scrape per search (safety limit)
+MAX_PAGES = 10
 
 
 async def scrape_jobindex() -> list[Job]:
@@ -40,60 +41,62 @@ async def scrape_jobindex() -> list[Job]:
         for keyword in SEARCH_KEYWORDS:
             for location_id in LOCATION_IDS:
                 try:
-                    # Build URL with filters:
-                    # - jobtypes=1 = Fuldtid
-                    # - subid= location filter
-                    search_url = (
-                        f"https://www.jobindex.dk/jobsoegning?"
-                        f"q={quote_plus(keyword)}"
-                        f"&jobtypes=1"  # Fuldtid only
-                        f"&subid={location_id}"
-                    )
+                    page_num = 1
+                    has_more_pages = True
 
-                    logger.info(f"Jobindex: Searching '{keyword}' in location {location_id}")
-                    print(f"Jobindex: Searching '{keyword}' in location {location_id}")
+                    while has_more_pages and page_num <= MAX_PAGES:
+                        # Build URL with filters
+                        search_url = (
+                            f"https://www.jobindex.dk/jobsoegning?"
+                            f"q={quote_plus(keyword)}"
+                            f"&jobtypes=1"  # Fuldtid only
+                            f"&subid={location_id}"
+                        )
+                        if page_num > 1:
+                            search_url += f"&page={page_num}"
 
-                    await page.goto(search_url, wait_until="networkidle", timeout=30000)
-                    await asyncio.sleep(1)
+                        print(f"Jobindex: Searching '{keyword}' in location {location_id}, page {page_num}")
 
-                    # Parse page content
-                    content = await page.content()
-                    soup = BeautifulSoup(content, "html.parser")
+                        await page.goto(search_url, wait_until="networkidle", timeout=30000)
+                        await asyncio.sleep(1)
 
-                    # Find job listings - try multiple selectors
-                    job_cards = soup.select("div.PaidJob, div.jobsearch-result, article.jix_robotjob")
+                        # Parse page content
+                        content = await page.content()
+                        soup = BeautifulSoup(content, "html.parser")
 
-                    if not job_cards:
-                        # Try alternative selectors
-                        job_cards = soup.select("[data-job-id], .jix-toolbar-top")
+                        # Find job listings using multiple selectors
+                        job_cards = soup.select("div.PaidJob, div.jobsearch-result, article.jix_robotjob")
 
-                    for card in job_cards:
-                        try:
-                            job = parse_job_card(card)
-                            if job:
-                                jobs.append(job)
-                        except Exception as e:
-                            logger.warning(f"Failed to parse job card: {e}")
+                        # Also try finding job wrappers by ID pattern
+                        if not job_cards:
+                            job_cards = soup.select("[id^='jobad-wrapper-']")
+
+                        if not job_cards:
+                            print(f"Jobindex: No jobs found on page {page_num}, stopping pagination")
+                            has_more_pages = False
                             continue
 
-                    print(f"Jobindex: Found {len(job_cards)} jobs for '{keyword}' in location {location_id}")
+                        jobs_on_page = 0
+                        for card in job_cards:
+                            try:
+                                job = parse_job_card(card)
+                                if job:
+                                    jobs.append(job)
+                                    jobs_on_page += 1
+                            except Exception as e:
+                                logger.warning(f"Failed to parse job card: {e}")
+                                continue
 
-                    # Scrape page 2 as well
-                    page2_url = f"{search_url}&page=2"
-                    await page.goto(page2_url, wait_until="networkidle", timeout=30000)
-                    await asyncio.sleep(1)
+                        print(f"Jobindex: Found {jobs_on_page} jobs on page {page_num}")
 
-                    content = await page.content()
-                    soup = BeautifulSoup(content, "html.parser")
-                    job_cards = soup.select("div.PaidJob, div.jobsearch-result, article.jix_robotjob, [data-job-id]")
-
-                    for card in job_cards:
-                        try:
-                            job = parse_job_card(card)
-                            if job:
-                                jobs.append(job)
-                        except Exception as e:
-                            continue
+                        # Check if there are more pages
+                        # Look for pagination info or next page link
+                        next_page = soup.select_one("a.page-link[rel='next'], a[aria-label='Næste']")
+                        if not next_page and jobs_on_page < 20:
+                            # Less than full page = last page
+                            has_more_pages = False
+                        else:
+                            page_num += 1
 
                 except Exception as e:
                     logger.error(f"Jobindex: Error scraping '{keyword}': {e}")
@@ -102,7 +105,7 @@ async def scrape_jobindex() -> list[Job]:
 
         await browser.close()
 
-    # Remove duplicates
+    # Remove duplicates based on URL
     seen_urls = set()
     unique_jobs = []
     for job in jobs:
@@ -117,14 +120,12 @@ async def scrape_jobindex() -> list[Job]:
 def parse_job_card(card) -> Job | None:
     """Parse a job card element into a Job object."""
     try:
-        # Title and URL - try multiple selectors
-        title_elem = card.select_one(
-            "a.PaidJob-inner, a.jobsearch-result__title, h4 a, "
-            ".jix-toolbar-top__title a, a[data-click-event='job_click']"
-        )
+        # Title - look for h4 > a or other title patterns
+        title_elem = card.select_one("h4 a, a.PaidJob-inner, .jix-toolbar-top__title a")
+
         if not title_elem:
-            # Look for any link in the card
-            title_elem = card.find("a", href=lambda x: x and "/jobannonce/" in x)
+            # Try finding any link to a job page
+            title_elem = card.find("a", href=lambda x: x and ("/jobannonce/" in x or "candidate.hr-manager" in x))
 
         if not title_elem:
             return None
@@ -133,36 +134,45 @@ def parse_job_card(card) -> Job | None:
         if not title or len(title) < 5:
             return None
 
+        # URL
         url = title_elem.get("href", "")
         if url and not url.startswith("http"):
             url = f"https://www.jobindex.dk{url}"
 
-        # Company
+        # Company - try multiple selectors
         company_elem = card.select_one(
-            "p.PaidJob-company, span.jobsearch-result__company, "
-            ".jix-toolbar-top__company, .jix_robotjob--company"
+            ".jix-toolbar-top__company a, "
+            "p.PaidJob-company, "
+            ".jix_robotjob--company, "
+            "a[href*='/telefonbog/']"
         )
         company = company_elem.get_text(strip=True) if company_elem else ""
 
         # Location
         location_elem = card.select_one(
-            "p.PaidJob-location, span.jobsearch-result__location, "
-            ".jix_robotjob--area, .jix-toolbar-top__location"
+            "span.jix_robotjob--area, "
+            ".jobad-element-area span, "
+            "p.PaidJob-location"
         )
         location = location_elem.get_text(strip=True) if location_elem else ""
 
-        # Description (snippet)
+        # Description (snippet from the card)
         desc_elem = card.select_one(
-            "p.PaidJob-excerpt, div.jobsearch-result__description, "
-            ".PaidJob-desc, .jix_robotjob--text"
+            ".PaidJob-inner p, "
+            ".jix_robotjob--text, "
+            ".jobsearch-result__description"
         )
         description = desc_elem.get_text(strip=True) if desc_elem else ""
 
-        # Deadline
-        deadline_elem = card.select_one(
-            ".jobsearch-result__date, .PaidJob-date, .jix_robotjob--deadline"
-        )
-        deadline = deadline_elem.get_text(strip=True) if deadline_elem else None
+        # Deadline/date
+        deadline = None
+        time_elem = card.select_one("time[datetime]")
+        if time_elem:
+            deadline = time_elem.get("datetime") or time_elem.get_text(strip=True)
+        else:
+            date_elem = card.select_one(".jix-toolbar__pubdate, .PaidJob-date")
+            if date_elem:
+                deadline = date_elem.get_text(strip=True)
 
         return Job(
             title=title,
